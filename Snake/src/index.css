@@ -1,0 +1,62 @@
+:root {
+  --app-bg: #070a17;
+  --panel-bg: #0b1220;
+  --panel-border: #1f2a44;
+  --text-main: #e5e7eb;
+  --text-muted: #93a4bd;
+  --accent: #38bdf8;
+  --snake-body-1: #22c55e;
+  --snake-body-2: #16a34a;
+  --snake-head: #4ade80;
+  --snake-outline: #063a25;
+  --food-main: #ef4444;
+  --food-glow: #fb7185;
+  --wall-color: #facc15;
+  --wall-outline: #b45309;
+  --grid-color: #101a33;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--text-main);
+  background-color: var(--app-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+button {
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
