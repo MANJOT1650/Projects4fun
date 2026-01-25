@@ -1,13 +1,13 @@
 :root {
   --font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --bg-color: #1a1a1a;
-  --primary-color: #646cff;
-  --secondary-color: #535bf2;
-  --accent-color: #ff0055;
-  --text-color: rgba(255, 255, 255, 0.87);
+  --bg-color: #0d1117;
+  --primary-color: #ff6b6b;
+  --secondary-color: #4ecdc4;
+  --accent-color: #ffe66d;
+  --text-color: rgba(255, 255, 255, 0.95);
   --board-bg: rgba(255, 255, 255, 0.05);
-  --btn-bg: #1a1a1a;
-  --btn-hover: #292929;
+  --btn-bg: #4ecdc4;
+  --btn-hover: #45b7af;
 }
 
 body {
@@ -17,11 +17,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--bg-color);
-  background-image: radial-gradient(circle at 50% 50%, #2a2a2a 0%, #1a1a1a 100%);
+  background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0d1117 100%);
   color: var(--text-color);
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
 
 #root {
@@ -32,13 +33,15 @@ body {
 }
 
 h1.game-title {
-  font-size: 3.2em;
+  font-size: 3.5rem;
   line-height: 1.1;
-  background: -webkit-linear-gradient(120deg, #bd34fe 30%, #41d1ff);
+  background: linear-gradient(120deg, #ff6b6b, #4ecdc4);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 2rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  filter: drop-shadow(0 0 10px rgba(189, 52, 254, 0.3));
+  letter-spacing: 4px;
+  filter: drop-shadow(2px 4px 0px rgba(0, 0, 0, 0.1));
+  font-weight: 900;
 }

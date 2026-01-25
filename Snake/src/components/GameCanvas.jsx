@@ -93,8 +93,7 @@ const GameCanvas = ({ snake, food, walls, mapSize }) => {
             style={{
                 border: `2px solid ${COLORS.PANEL_BORDER}`,
                 backgroundColor: COLORS.APP_BG,
-                boxShadow: '0 0 20px rgba(0,0,0,0.5)',
-                marginTop: '20px'
+                boxShadow: '0 0 20px rgba(0,0,0,0.5)'
             }}
         />
     );

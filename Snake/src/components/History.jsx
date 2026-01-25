@@ -68,9 +68,9 @@ const History = ({ onBack }) => {
                 </table>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '10px' }}>
-                <Button onClick={clearHistory}>🗑 Clear</Button>
-                <Button onClick={onBack}>⬅ Back</Button>
+            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '10px', justifyContent: 'center' }}>
+                <Button onClick={clearHistory} style={{ width: 'auto' }}>🗑 Clear</Button>
+                <Button onClick={onBack} style={{ width: 'auto' }}>⬅ Back</Button>
             </div>
         </div>
     );

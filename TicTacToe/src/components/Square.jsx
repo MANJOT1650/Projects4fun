@@ -5,6 +5,7 @@ export default function Square({ value, onSquareClick, isWinningSquare }) {
         <button
             className={`square ${value ? 'filled' : ''} ${isWinningSquare ? 'winning' : ''}`}
             onClick={onSquareClick}
+            data-value={value}
         >
             {value}
         </button>

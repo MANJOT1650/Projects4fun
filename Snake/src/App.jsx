@@ -77,50 +77,58 @@ function App() {
       )}
 
       {view === 'GAME' && (
-        <div style={{ position: 'relative' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%'
+        }}>
           {/* Header */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            width: '100%',
-            maxWidth: '600px',
+            width: `${game.currentMapSize.w}px`,
             marginBottom: '10px'
           }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Score: {score}</div>
             <Button onClick={handleGoMenu} style={{ width: 'auto', padding: '10px 20px', fontSize: '1rem', margin: 0 }}>🏠 Menu</Button>
           </div>
 
-          {/* Game Canvas */}
-          <GameCanvas
-            snake={game.snake}
-            food={game.food}
-            walls={game.walls}
-            mapSize={game.currentMapSize}
-          />
+          {/* Game Canvas & Overlay Wrapper */}
+          <div style={{ position: 'relative' }}>
+            <GameCanvas
+              snake={game.snake}
+              food={game.food}
+              walls={game.walls}
+              mapSize={game.currentMapSize}
+            />
 
-          {/* Game Over Overlay */}
-          {gameState === 'GAME_OVER' && (
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              padding: '40px',
-              borderRadius: '20px',
-              textAlign: 'center',
-              border: `2px solid ${COLORS.ACCENT}`,
-              backdropFilter: 'blur(5px)'
-            }}>
-              <h1 style={{ color: '#ef4444', fontSize: '3rem', marginBottom: '10px' }}>GAME OVER</h1>
-              <p style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Final Score: {score}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
-                <Button onClick={startGame}>🔄 Play Again</Button>
-                <Button onClick={handleGoMenu}>🏠 Main Menu</Button>
+            {/* Game Over Overlay */}
+            {gameState === 'GAME_OVER' && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                padding: '40px',
+                borderRadius: '20px',
+                textAlign: 'center',
+                border: `2px solid ${COLORS.ACCENT}`,
+                backdropFilter: 'blur(5px)',
+                width: '100%',
+                maxWidth: '400px'
+              }}>
+                <h1 style={{ color: '#ef4444', fontSize: '3rem', marginBottom: '10px' }}>GAME OVER</h1>
+                <p style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Final Score: {score}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '250px' }}>
+                  <Button onClick={startGame}>🔄 Play Again</Button>
+                  <Button onClick={handleGoMenu}>🏠 Main Menu</Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
