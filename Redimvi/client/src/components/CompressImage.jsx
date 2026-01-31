@@ -154,6 +154,8 @@ const CompressImage = () => {
                 value={targetSize}
                 onChange={(e) => setTargetSize(e.target.value)}
                 min="1"
+                step="1"
+                autoComplete="off"
                 required={compressionMode === 'size'}
               />
               <select

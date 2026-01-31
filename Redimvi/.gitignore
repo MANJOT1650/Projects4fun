@@ -2,10 +2,13 @@
 node_modules/
 package-lock.json
 
-# Environment variables
+# Environment variables (NEVER COMMIT THESE!)
 .env
 .env.local
 .env.*.local
+**/.env
+**/server/.env
+**/client/.env
 
 # Uploads and temporary files
 server/uploads/*
@@ -40,3 +43,13 @@ coverage/
 # Misc
 *.bak
 *.tmp
+
+# Auto-generated documentation (keep README.md and SETUP.md)
+*.md
+MIGRATION.md
+CLEANUP.md
+UI_REDESIGN.md
+ROUTER_FIX.md
+SMOOTHNESS.md
+IMAGE_COMPRESSION_FIX.md
+COMPRESSION_ENHANCEMENT.md

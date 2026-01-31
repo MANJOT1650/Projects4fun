@@ -34,14 +34,16 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+
     const { quality = 80 } = req.body;
     const inputPath = req.file.path;
 
-    // Detect original format from mimetype
+    // Get exact original file extension from the uploaded filename
+    const originalExtension = path.extname(req.file.originalname).toLowerCase().slice(1); // Remove the dot
     const originalFormat = req.file.mimetype.split('/')[1]; // 'png', 'jpeg', etc.
-    const fileExtension = originalFormat === 'jpeg' ? 'jpg' : originalFormat;
 
-    const outputFilename = `compressed_${Date.now()}.${fileExtension}`;
+    // Use the exact original extension (preserves jpg vs jpeg)
+    const outputFilename = `compressed_${Date.now()}.${originalExtension}`;
     const outputPath = path.join('uploads', outputFilename);
 
     // Create Sharp instance with auto-rotation to fix EXIF orientation
@@ -80,7 +82,7 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
     res.json({
       message: 'Image compressed successfully',
       filename: outputFilename,
-      format: fileExtension.toUpperCase(),
+      format: originalExtension.toUpperCase(),
       originalSize: `${(inputStats.size / 1024).toFixed(2)} KB`,
       compressedSize: `${(outputStats.size / 1024).toFixed(2)} KB`,
       compressionRatio: `${compressionRatio}%`,

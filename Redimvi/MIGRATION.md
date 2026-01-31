@@ -12,8 +12,9 @@
 - ✅ Created: `server/config/database.js` - PostgreSQL connection with SSL support
 - ✅ Updated: `server/.env` - Changed `MONGO_URI` to `DATABASE_URL`
   ```
-  DATABASE_URL=postgresql://redimvidb_user:1KIynZBRF2jjMIjlpjO57fYxGvbOMfuO@dpg-d5ut4lbuibrs73cdjp90-a.virginia-postgres.render.com/redimvidb
+  DATABASE_URL=postgresql://username:password@host:port/database
   ```
+  **Note:** Actual credentials are stored in `server/.env` (not committed to git)
 
 #### 3. **Models**
 - ✅ Rewrote: `server/models/User.js` - Converted from Mongoose to Sequelize
