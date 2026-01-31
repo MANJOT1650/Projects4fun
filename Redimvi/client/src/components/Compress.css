@@ -443,6 +443,10 @@
 
 .size-input-group input[type="number"] {
   flex: 1;
+  width: 100%;
+  /* Force width */
+  min-width: 0;
+  /* Allow shrinking if needed */
   padding: 14px 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
@@ -478,6 +482,9 @@
 }
 
 .unit-selector {
+  flex: 0 0 auto;
+  /* Prevent growing/shrinking */
+  width: auto;
   min-width: 90px;
   padding: 14px 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -609,3 +616,27 @@
     font-size: 13px;
   }
 }
+/* Force layout fixes for input group */
+.size-input-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch;
+}
+
+.target-size-input {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 50px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  color: white !important;
+}
+
+.unit-selector {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 90px !important;
+}
+

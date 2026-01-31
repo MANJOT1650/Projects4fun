@@ -5,8 +5,11 @@ import './Compress.css';
 
 const CompressVideo = () => {
   const [file, setFile] = useState(null);
-  const [quality, setQuality] = useState('medium');
+  const [compressionMode, setCompressionMode] = useState('quality'); // 'quality' or 'size'
+  const [qualityScore, setQualityScore] = useState(50); // 0-100 for slider
+  const [quality, setQuality] = useState('medium'); // derived from score or straight selection
   const [targetSize, setTargetSize] = useState('');
+  const [sizeUnit, setSizeUnit] = useState('MB');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
@@ -16,6 +19,21 @@ const CompressVideo = () => {
     setFile(e.target.files[0]);
   };
 
+  const getQualityLabel = (score) => {
+    if (score >= 75) return 'High (Better quality)';
+    if (score >= 35) return 'Medium (Balanced)';
+    return 'Low (Smaller size)';
+  };
+
+  // Update string quality when slider changes
+  const handleQualityChange = (e) => {
+    const val = parseInt(e.target.value);
+    setQualityScore(val);
+    if (val >= 75) setQuality('high');
+    else if (val >= 35) setQuality('medium');
+    else setQuality('low');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
@@ -23,27 +41,50 @@ const CompressVideo = () => {
       return;
     }
 
+    if (compressionMode === 'size' && !targetSize) {
+      alert('Please enter target size');
+      return;
+    }
+
     setLoading(true);
     setProgress(0);
     setResult(null);
 
+    // Progress simulation (slower for video)
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval);
           return 90;
         }
-        return prev + Math.random() * 10;
+        return prev + Math.random() * 2; // slower progress
       });
-    }, 300);
+    }, 500);
 
     try {
-      const response = await compressVideo(file, targetSize, quality);
+      // Calculate target size in MB (API expects MB usually for video, or we standardize)
+      // The current API implementation passes 'targetSize' as string.
+      // Let's pass the raw targetSize and unit or normalize it.
+      // Video compression is heavy, let's normalize to MB usually.
+
+      let finalTargetSize = null;
+      if (compressionMode === 'size') {
+        // If unit is KB, convert to MB. If MB, keep as is.
+        // Actually, backend 'compress.js' for video placeholder currently takes 'targetSize' directly.
+        // We will implement functional backend later.
+        // For now, let's pass it compatible with what we will build.
+        // Let's pass "sizeInMB".
+        finalTargetSize = sizeUnit === 'KB' ? parseFloat(targetSize) / 1024 : parseFloat(targetSize);
+      }
+
+      const response = await compressVideo(file, finalTargetSize, quality);
+
       clearInterval(progressInterval);
       setProgress(100);
+
       setTimeout(() => {
         setResult(response.data);
-        alert('✓ Video processed! ' + response.data.note);
+        alert('✓ Video processed! ' + (response.data.note || ''));
       }, 300);
     } catch (error) {
       clearInterval(progressInterval);
@@ -75,29 +116,78 @@ const CompressVideo = () => {
           />
         </div>
 
+        {/* Compression Mode Selection */}
         <div className="form-group">
-          <label htmlFor="quality">Quality:</label>
-          <select
-            id="quality"
-            value={quality}
-            onChange={(e) => setQuality(e.target.value)}
-          >
-            <option value="low">Low (Smaller size)</option>
-            <option value="medium">Medium (Balanced)</option>
-            <option value="high">High (Better quality)</option>
-          </select>
+          <label>Compression Mode:</label>
+          <div className="mode-selector">
+            <button
+              type="button"
+              className={`mode-btn ${compressionMode === 'quality' ? 'active' : ''}`}
+              onClick={() => setCompressionMode('quality')}
+            >
+              📊 By Quality
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${compressionMode === 'size' ? 'active' : ''}`}
+              onClick={() => setCompressionMode('size')}
+            >
+              📏 By Target Size
+            </button>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="targetSize">Target Size (MB, optional):</label>
-          <input
-            type="number"
-            id="targetSize"
-            value={targetSize}
-            onChange={(e) => setTargetSize(e.target.value)}
-            placeholder="Enter target size in MB"
-          />
-        </div>
+        {/* Quality Mode */}
+        {compressionMode === 'quality' && (
+          <div className="form-group">
+            <label htmlFor="quality">
+              Quality: {getQualityLabel(qualityScore)}
+            </label>
+            <input
+              type="range"
+              id="quality"
+              min="1"
+              max="100"
+              value={qualityScore}
+              onChange={handleQualityChange}
+            />
+            <div className="quality-info">
+              <small>💡 Higher quality = Larger file size</small>
+            </div>
+          </div>
+        )}
+
+        {/* Target Size Mode */}
+        {compressionMode === 'size' && (
+          <div className="form-group">
+            <label htmlFor="targetSize">Target File Size:</label>
+            <div className="size-input-group">
+              <input
+                type="number"
+                id="targetSize"
+                className="target-size-input"
+                placeholder="Enter size"
+                value={targetSize}
+                onChange={(e) => setTargetSize(e.target.value)}
+                min="1"
+                step="0.1"
+                autoComplete="off"
+                required={compressionMode === 'size'}
+              />
+              <select
+                value={sizeUnit}
+                onChange={(e) => setSizeUnit(e.target.value)}
+                className="unit-selector"
+              >
+                <option value="MB">MB</option>
+                <option value="KB">KB</option>
+              </select>
+            </div>
+            <div className="quality-info">
+              <small>💡 Video will be compressed to approximately this size</small>
+            </div>
+          </div>
+        )}
 
         <button type="submit" disabled={loading}>
           {loading && <span className="loading-spinner"></span>}
@@ -123,20 +213,35 @@ const CompressVideo = () => {
 
       {result && (
         <div className="result-container">
-          <h2>✓ Processing Complete!</h2>
+          <h2>Processing Complete!</h2>
           <div className="result-info">
             <p><strong>Original Size:</strong> {result.originalSize}</p>
-            <p><strong>Quality:</strong> {result.quality}</p>
-            {result.targetSize !== 'Not specified' && (
-              <p><strong>Target Size:</strong> {result.targetSize} MB</p>
+            {result.quality && <p><strong>Quality:</strong> {result.quality}</p>}
+            {result.targetSize && result.targetSize !== 'Not specified' && result.targetSize !== 'null MB' && (
+              <p><strong>Target Size:</strong> {result.targetSize}</p>
             )}
-            <p style={{ marginTop: '15px', color: '#ffeb3b' }}>
-              <strong>Note:</strong> {result.note}
-            </p>
-            <p style={{ fontSize: '12px', marginTop: '10px' }}>
-              {result.instructions}
-            </p>
+
+            {result.note && (
+              <p style={{ marginTop: '15px', color: '#ffeb3b' }}>
+                <strong>Note:</strong> {result.note}
+              </p>
+            )}
+            {result.instructions && (
+              <p style={{ fontSize: '12px', marginTop: '10px' }}>
+                {result.instructions}
+              </p>
+            )}
           </div>
+
+          {result.downloadUrl && (
+            <a
+              href={result.downloadUrl}
+              className="download-btn"
+              style={{ display: 'block', textAlign: 'center', marginTop: '20px', textDecoration: 'none' }}
+            >
+              Download Compressed Video
+            </a>
+          )}
         </div>
       )}
     </div>

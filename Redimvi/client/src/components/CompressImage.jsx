@@ -46,8 +46,13 @@ const CompressImage = () => {
     }, 200);
 
     try {
-      // For now, we'll use quality mode (backend needs to be updated for size mode)
-      const response = await compressImage(file, quality);
+      // Calculate target size in KB if in size mode
+      let activeTargetSize = null;
+      if (compressionMode === 'size') {
+        activeTargetSize = sizeUnit === 'MB' ? parseFloat(targetSize) * 1024 : parseFloat(targetSize);
+      }
+
+      const response = await compressImage(file, quality, activeTargetSize);
 
       clearInterval(progressInterval);
       setProgress(100);
@@ -150,6 +155,7 @@ const CompressImage = () => {
               <input
                 type="number"
                 id="targetSize"
+                className="target-size-input"
                 placeholder="Enter size"
                 value={targetSize}
                 onChange={(e) => setTargetSize(e.target.value)}

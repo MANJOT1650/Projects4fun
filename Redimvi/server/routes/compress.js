@@ -4,6 +4,19 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const { authenticateToken } = require('../middleware/auth');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('ffmpeg-static');
+
+// Setup ffmpeg paths
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+// Try to setup ffprobe if available
+try {
+  const ffprobePath = require('ffprobe-static').path;
+  ffmpeg.setFfprobePath(ffprobePath);
+} catch (e) {
+  console.warn('ffprobe-static not found, size-based compression might fail');
+}
 
 const router = express.Router();
 
@@ -35,7 +48,7 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
     }
 
 
-    const { quality = 80 } = req.body;
+    const { quality = 80, targetSize } = req.body;
     const inputPath = req.file.path;
 
     // Get exact original file extension from the uploaded filename
@@ -47,27 +60,79 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
     const outputPath = path.join('uploads', outputFilename);
 
     // Create Sharp instance with auto-rotation to fix EXIF orientation
-    const sharpInstance = sharp(inputPath, { failOnError: false })
-      .rotate(); // Auto-rotate based on EXIF orientation
+    const sharpInstance = sharp(inputPath, { failOnError: false }).rotate();
 
-    // Compress image based on original format
-    if (originalFormat === 'png') {
-      await sharpInstance
-        .png({
-          quality: parseInt(quality),
-          compressionLevel: Math.floor((100 - parseInt(quality)) / 10), // 0-9
-          palette: true // Use palette for smaller file size
-        })
-        .toFile(outputPath);
+    // Helper function to compress buffer at specific quality
+    const compressWithQuality = async (q) => {
+      const qInt = parseInt(q);
+      if (originalFormat === 'png') {
+        const compressionLevel = Math.floor((100 - qInt) / 10);
+        return sharpInstance
+          .clone()
+          .png({
+            quality: qInt,
+            compressionLevel: compressionLevel,
+            palette: true
+          })
+          .toBuffer();
+      } else {
+        return sharpInstance
+          .clone()
+          .jpeg({
+            quality: qInt,
+            mozjpeg: true
+          })
+          .toBuffer();
+      }
+    };
+
+    let finalBuffer;
+    let finalQuality = parseInt(quality);
+
+    if (targetSize) {
+      // Target Mode: Iterative compression algorithm
+      const targetBytes = parseFloat(targetSize) * 1024; // convert KB to bytes
+
+      let minQ = 5;
+      let maxQ = 95;
+      let currentQ = 80;
+      let bestBuffer = null;
+      let bestDiff = Infinity;
+
+      // Binary search for optimal quality (max 6 iterations)
+      for (let i = 0; i < 6; i++) {
+        const buffer = await compressWithQuality(currentQ);
+
+        if (buffer.length <= targetBytes) {
+          // It fits! 
+          bestBuffer = buffer;
+          finalQuality = currentQ;
+          minQ = currentQ + 1; // Try Higher quality
+        } else {
+          // Too big
+          maxQ = currentQ - 1; // Try Lower quality
+        }
+
+        if (minQ > maxQ) break;
+        currentQ = Math.floor((minQ + maxQ) / 2);
+      }
+
+      // Fallback if we couldn't meet target (or just use best found)
+      if (!bestBuffer) {
+        // If we strictly failed to meet target, return the smallest possible (quality 5)
+        // or just the last attempt? Let's go with lowest safe quality
+        bestBuffer = await compressWithQuality(5);
+        finalQuality = 5;
+      }
+
+      finalBuffer = bestBuffer;
     } else {
-      // JPEG/JPG
-      await sharpInstance
-        .jpeg({
-          quality: parseInt(quality),
-          mozjpeg: true // Use mozjpeg for better compression
-        })
-        .toFile(outputPath);
+      // Quality Mode: Single pass
+      finalBuffer = await compressWithQuality(quality);
     }
+
+    // Write final buffer to file
+    fs.writeFileSync(outputPath, finalBuffer);
 
     // Get file sizes for comparison
     const inputStats = fs.statSync(inputPath);
@@ -87,7 +152,7 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
       compressedSize: `${(outputStats.size / 1024).toFixed(2)} KB`,
       compressionRatio: `${compressionRatio}%`,
       downloadUrl: `/api/compress/download/${outputFilename}`,
-      quality: parseInt(quality),
+      quality: finalQuality,
     });
   } catch (error) {
     console.error('Image compression error:', error);
@@ -95,7 +160,7 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
   }
 });
 
-// Video compression endpoint (placeholder - requires FFmpeg)
+// Video compression endpoint
 router.post('/video', authenticateToken, upload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
@@ -104,25 +169,102 @@ router.post('/video', authenticateToken, upload.single('video'), async (req, res
 
     const { targetSize, quality = 'medium' } = req.body;
     const inputPath = req.file.path;
+    const outputFilename = `compressed_video_${Date.now()}.mp4`;
+    const outputPath = path.join('uploads', outputFilename);
     const inputStats = fs.statSync(inputPath);
 
-    // For now, return info about what would be done
-    // FFmpeg needs to be installed separately
+    // Create ffmpeg command
+    const command = ffmpeg(inputPath);
+
+    // Function to run compression
+    const runCompression = (options) => {
+      return new Promise((resolve, reject) => {
+        const cmd = command.output(outputPath);
+
+        // Apply options
+        if (options.crf) {
+          cmd.videoCodec('libx264').addOption('-crf', options.crf);
+        }
+        if (options.videoBitrate) {
+          cmd.videoBitrate(options.videoBitrate).audioBitrate(128);
+        }
+
+        cmd
+          .on('end', () => resolve())
+          .on('error', (err) => reject(err))
+          .run();
+      });
+    };
+
+    // Determine mode
+    if (targetSize) {
+      // Target Size Mode (Requires Probe)
+      const targetMB = parseFloat(targetSize);
+
+      // Get duration
+      await new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(inputPath, async (err, metadata) => {
+          if (err) return reject(new Error('Failed to probe video info'));
+
+          const duration = metadata.format.duration;
+          if (!duration) return reject(new Error('Could not determine video duration'));
+
+          // Calculate bitrate: (Size(MB) * 8 * 1024 * 1024) / Duration(s)
+          // Result is in bits/s. ffmpeg expects kbps or number?
+          // fluent-ffmpeg .videoBitrate() expects kbps if number, or string '1000k'.
+          // Let's use bits/s -> kbps
+
+          const totalBits = targetMB * 8 * 1024 * 1024;
+          const totalBitrate = totalBits / duration;
+          const audioBitrate = 128 * 1000; // 128 kbps audio approx
+          let videoBitrate = totalBitrate - audioBitrate;
+
+          if (videoBitrate < 100000) videoBitrate = 100000; // Min 100kbps video
+
+          const videoBitrateKbps = Math.floor(videoBitrate / 1000);
+
+          try {
+            await runCompression({ videoBitrate: videoBitrateKbps });
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+
+    } else {
+      // Quality Mode (CRF)
+      // Adjusted to ensure size reduction:
+      let crf = 28; // Medium - solid compression (approx 50-70% reduction)
+      if (quality === 'high') crf = 23;      // High - standard quality
+      else if (quality === 'low') crf = 32;  // Low - heavy compression (small size)
+
+      await runCompression({ crf });
+    }
+
+    // Success response
+    const outputStats = fs.statSync(outputPath);
+    const compressionRatio = (((inputStats.size - outputStats.size) / inputStats.size) * 100).toFixed(2);
+
     res.json({
-      message: 'Video compression is ready for processing',
-      filename: req.file.filename,
+      message: 'Video compressed successfully',
+      filename: outputFilename,
       originalSize: `${(inputStats.size / 1024 / 1024).toFixed(2)} MB`,
+      compressedSize: `${(outputStats.size / 1024 / 1024).toFixed(2)} MB`,
       quality: quality,
-      targetSize: targetSize || 'Not specified',
-      note: 'Install FFmpeg for actual compression: https://ffmpeg.org/download.html',
-      instructions: 'After installing FFmpeg, compression will be automatic',
-      downloadUrl: null, // Will be available after FFmpeg integration
+      targetSize: targetSize ? `${targetSize} MB` : 'Not specified',
+      downloadUrl: `/api/compress/download/${outputFilename}`,
+      note: `Compression Ratio: ${compressionRatio}%`,
     });
 
-    // Store for later processing
-    fs.renameSync(inputPath, path.join('uploads', `video_${Date.now()}_${req.file.originalname}`));
+    // Cleanup input
+    fs.unlinkSync(inputPath);
+
   } catch (error) {
     console.error('Video compression error:', error);
+    fs.writeFileSync('video_error.log', `Error: ${error.message}\nStack: ${error.stack}\nTime: ${new Date().toISOString()}\n`);
+    // Cleanup output if exists and we failed
+    try { if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
     res.status(500).json({ error: error.message || 'Video compression failed' });
   }
 });

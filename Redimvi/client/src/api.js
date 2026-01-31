@@ -25,10 +25,13 @@ export const login = (email, password) => {
   return api.post('/auth/login', { email, password });
 };
 
-export const compressImage = (file, quality) => {
+export const compressImage = (file, quality, targetSize = null) => {
   const formData = new FormData();
   formData.append('image', file);
   formData.append('quality', quality);
+  if (targetSize) {
+    formData.append('targetSize', targetSize);
+  }
   return api.post('/compress/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -37,7 +40,9 @@ export const compressImage = (file, quality) => {
 export const compressVideo = (file, targetSize, quality) => {
   const formData = new FormData();
   formData.append('video', file);
-  formData.append('targetSize', targetSize);
+  if (targetSize) {
+    formData.append('targetSize', targetSize);
+  }
   formData.append('quality', quality);
   return api.post('/compress/video', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
