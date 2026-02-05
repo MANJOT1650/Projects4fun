@@ -222,7 +222,7 @@ const CompressVideo = () => {
             )}
 
             {result.note && (
-              <p style={{ marginTop: '15px', color: '#ffeb3b' }}>
+              <p className="result-note">
                 <strong>Note:</strong> {result.note}
               </p>
             )}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { convertFormat } from '../api';
 import './Compress.css';
+import { API_BASE_URL } from '../config';
 
 const ConvertFormat = () => {
   const [file, setFile] = useState(null);
@@ -11,6 +12,13 @@ const ConvertFormat = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const navigate = useNavigate();
+
+  // Helper to get download URL
+  const getDownloadUrl = (path) => {
+    if (!path) return '#';
+    const baseUrl = API_BASE_URL.replace('/api', '');
+    return `${baseUrl}${path}`;
+  };
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -131,13 +139,19 @@ const ConvertFormat = () => {
           <h2>✓ Conversion Ready!</h2>
           <div className="result-info">
             <p><strong>Original Size:</strong> {result.originalSize}</p>
+            {result.convertedSize && <p><strong>Converted Size:</strong> {result.convertedSize}</p>}
             <p><strong>Converting:</strong> {result.fromFormat.toUpperCase()} → {result.toFormat.toUpperCase()}</p>
-            <p style={{ marginTop: '15px', color: '#ffeb3b' }}>
+            <p className="result-note">
               <strong>Note:</strong> {result.note}
             </p>
             <p style={{ fontSize: '12px', marginTop: '10px' }}>
               {result.instructions}
             </p>
+            {result.downloadUrl && (
+              <a href={getDownloadUrl(result.downloadUrl)} download className="download-btn" style={{ textDecoration: 'none', display: 'block', marginTop: '20px', textAlign: 'center' }}>
+                Download Converted Video
+              </a>
+            )}
           </div>
         </div>
       )}

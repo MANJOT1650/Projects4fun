@@ -1,125 +1,140 @@
-# RedImVi - Media Compression Platform
+# 🎬 RedImVi - Advanced Media Transformation Engine
 
-## Project Overview
-RedImVi is a full-stack web application for compressing and converting media files (videos and images).
+[![Full Stack](https://img.shields.io/badge/Full--Stack-Developer-blue.svg)](#)
+[![Stack](https://img.shields.io/badge/Tech-React_%7C_Node_%7C_PostgreSQL-brightgreen.svg)](#)
+[![Security](https://img.shields.io/badge/Security-JWT_Authed-orange.svg)](#)
 
-### Features
-- 🔐 User authentication (Login/Signup)
-- 🖼️ Image compression with quality control
-- 🎥 Video compression with target size or quality-based options
-- 🔄 Video format conversion (MP4 ↔ MKV)
-- 🎨 Modern, responsive UI with gradient design
+**RedImVi** is a high-performance, full-stack media processing platform designed to provide seamless compression and format transformation for images and videos. Engineered with a focus on speed, precision, and privacy, it leverages industry-standard processing engines to deliver professional results through a sleek, modern interface.
 
-## Tech Stack
+---
+
+## 🚀 Key Features
+
+### �️ Image Intelligence
+- **Intelligent Compression**: Binary search-based quality optimization to hit exact target file sizes.
+- **Multi-Format Support**: Process PNG, JPG, JPEG, and WEBP.
+- **Exif Preservation**: Automatic orientation correction via Sharp's rotation engine.
+
+### 🎥 Video Engineering
+- **Frame-Accurate Conversion**: High-speed format switching between MP4 and MKV using FFmpeg.
+- **Dual Compression Modes**: 
+  - **By Quality (CRF)**: Balance visual fidelity with file weight.
+  - **By Target Size**: Automated bitrate calculation based on video duration and target MB.
+
+### � Enterprise-Grade Core
+- **JWT Authentication**: Secure user sessions with Bcrypt-protected credentials.
+- **Stateful Management**: Persistent theme settings and secure local storage handling.
+- **PostgreSQL Persistence**: Robust relational data storage for user profiles.
+
+---
+
+## 🛠️ Tech Stack
 
 ### Frontend
-- React 18
-- Vite
-- React Router v6
-- Axios
-- CSS3 (with gradients and animations)
+- **Framework**: React 18 with Vite (Ultra-fast HMR)
+- **Routing**: React Router v6
+- **Interaction**: Axios with custom interceptors
+- **Aesthetics**: Vanilla CSS3 (Glassmorphism, CSS Variables, Keyframe Animations)
 
 ### Backend
-- Node.js
-- Express.js
-- PostgreSQL (Sequelize ORM)
-- JWT (Authentication)
-- bcryptjs (Password hashing)
-- Multer (File uploads)
-- Sharp (Image processing)
-- FFmpeg (Video processing)
+- **Engine**: Node.js & Express.js
+- **ORM**: Sequelize (PostgreSQL)
+- **Image Processing**: Sharp (High-performance Node.js image processing)
+- **Video Processing**: FFmpeg (via Fluent-FFmpeg)
+- **Security**: JSON Web Tokens & BcryptJS
 
-## Installation
+---
+
+## 🏗️ System Architecture & Privacy
+
+RedImVi is built with a **Zero-Persistence Policy** for user media:
+
+1.  **Ingress**: Files are uploaded via Multer to a temporary secure directory.
+2.  **Transformation**: Processing engines (Sharp/FFmpeg) perform requested operations.
+3.  **Cleanup Phase 1**: Original source files are unlinked from the filesystem immediately after the output is generated or if an error occurs.
+4.  **Cleanup Phase 2 (Automatic Destruct)**: Processed files are served via a dynamic download stream and are **permanently deleted** from the server the millisecond the download completes.
+
+---
+
+## 🚦 Getting Started
 
 ### Prerequisites
-- Node.js (v14+)
-- PostgreSQL (local or cloud - Render, Supabase, etc.)
-- FFmpeg (for video processing)
+- Node.js (v16+)
+- PostgreSQL (Local instance or Cloud provided)
+- FFmpeg (Installed on system PATH)
 
-### Backend Setup
-```bash
-cd server
-npm install
-```
+### Installation
 
-Create `.env` file:
-```
+1. **Clone & Setup Backend**
+   ```bash
+   cd server
+   npm install
+   # Configure .env based on the template below
+   npm start
+   ```
+
+2. **Setup Frontend**
+   ```bash
+   cd client
+   npm install
+   # Configure .env
+   npm run dev
+   ```
+
+### Environment Configuration
+
+**Server (.env)**
+```ini
 PORT=5000
-DATABASE_URL=your_postgresql_connection_string
-JWT_SECRET=your_secure_secret_key
+DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<db>
+JWT_SECRET=your_jwt_signing_key
 NODE_ENV=development
 ```
 
-Start server:
-```bash
-npm start
-# or for development with auto-reload
-npm run dev
-```
-
-### Frontend Setup
-```bash
-cd client
-npm install
-```
-
-Create `.env` file:
-```
+**Client (.env)**
+```ini
 VITE_API_URL=http://localhost:5000/api
 ```
 
-Start dev server:
-```bash
-npm run dev
-```
+---
 
-The app will be available at `http://localhost:3000`
+## 📡 API Reference
 
-## Project Structure
-```
+| Endpoint | Method | Auth | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/signup` | `POST` | Public | Register new developer account |
+| `/api/auth/login` | `POST` | Public | Authenticate and retrieve Bearer token |
+| `/api/compress/image` | `POST` | JWT | Process image with quality/size constraints |
+| `/api/compress/video` | `POST` | JWT | Process video with CRF or Target Bitrate |
+| `/api/compress/convert`| `POST` | JWT | Transform video container (MP4/MKV) |
+| `/api/compress/download/:file`| `GET` | Public* | Secure file retrieval with auto-cleanup |
+
+---
+
+## 📂 Project Structure
+
+```text
 Redimvi/
-├── server/
-│   ├── routes/
-│   │   ├── auth.js (Login/Signup)
-│   │   └── compress.js (Media compression)
-│   ├── models/
-│   │   └── User.js
-│   ├── middleware/
-│   │   └── auth.js (JWT verification)
-│   ├── index.js
-│   ├── package.json
-│   └── .env
-└── client/
-    ├── src/
-    │   ├── components/
-    │   │   ├── Login.jsx
-    │   │   ├── Signup.jsx
-    │   │   ├── Dashboard.jsx
-    │   │   ├── CompressImage.jsx
-    │   │   ├── CompressVideo.jsx
-    │   │   ├── ConvertFormat.jsx
-    │   │   └── Background.jsx
-    │   ├── App.jsx
-    │   ├── api.js
-    │   └── config.js
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    └── .env
+├── client/              # React-Vite Frontend
+│   ├── src/
+│   │   ├── components/  # Reusable UI & Logic modules
+│   │   ├── context/     # Global state management
+│   │   └── api.js       # Axios configuration
+├── server/              # Node.js REST API
+│   ├── config/          # Database & Utility configs
+│   ├── middleware/      # Auth & Global handlers
+│   ├── models/          # Sequelize Schema definitions
+│   ├── routes/          # Express API endpoints
+│   └── uploads/         # Temporary processing buffer
+└── start.bat            # Cross-service orchestrator (Windows)
 ```
 
-## Next Steps
-1. Install dependencies in both folders
-2. Set up MongoDB connection
-3. Configure FFmpeg path if needed
-4. Implement actual compression logic in backend
-5. Add file download functionality
-6. Add user profile/history features
-7. Deploy to production
+---
 
-## Notes
-- Use HTTPS in production
-- Store sensitive data securely
-- Implement rate limiting
-- Add comprehensive error handling
-- Test with various file sizes and formats
+## 📝 Developer Notes
+- **Performance**: Sharp processing is multi-threaded by default, taking advantage of multi-core server CPUs.
+- **Security**: Ensure `JWT_SECRET` is rotated in production environments.
+- **Scalability**: The processing logic is decoupled from the storage, allowing for easy migration to S3/Cloud bucket processing if needed.
+
+---
+*Developed with Passion & Precision as a Full Stack Initiative.*

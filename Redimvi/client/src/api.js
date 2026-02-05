@@ -59,4 +59,13 @@ export const convertFormat = (file, fromFormat, toFormat) => {
   });
 };
 
+export const convertImageFormat = (file, toFormat) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('toFormat', toFormat);
+  return api.post('/compress/convert-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
 export default api;

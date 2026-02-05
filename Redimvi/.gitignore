@@ -44,8 +44,7 @@ coverage/
 *.bak
 *.tmp
 
-# Auto-generated documentation (keep README.md and SETUP.md)
-*.md
+# Auto-generated documentation / Metadata
 MIGRATION.md
 CLEANUP.md
 UI_REDESIGN.md
@@ -53,3 +52,5 @@ ROUTER_FIX.md
 SMOOTHNESS.md
 IMAGE_COMPRESSION_FIX.md
 COMPRESSION_ENHANCEMENT.md
+*.tmp.md
+*.bak.md

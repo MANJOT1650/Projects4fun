@@ -156,6 +156,8 @@ router.post('/image', authenticateToken, upload.single('image'), async (req, res
     });
   } catch (error) {
     console.error('Image compression error:', error);
+    // Cleanup input file on error
+    try { if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
     res.status(500).json({ error: error.message || 'Image compression failed' });
   }
 });
@@ -262,14 +264,13 @@ router.post('/video', authenticateToken, upload.single('video'), async (req, res
 
   } catch (error) {
     console.error('Video compression error:', error);
-    fs.writeFileSync('video_error.log', `Error: ${error.message}\nStack: ${error.stack}\nTime: ${new Date().toISOString()}\n`);
-    // Cleanup output if exists and we failed
-    try { if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
+    // Cleanup input file on error
+    try { if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
     res.status(500).json({ error: error.message || 'Video compression failed' });
   }
 });
 
-// Format conversion endpoint (placeholder - requires FFmpeg)
+// Format conversion endpoint
 router.post('/convert', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -278,6 +279,8 @@ router.post('/convert', authenticateToken, upload.single('file'), async (req, re
 
     const { fromFormat, toFormat } = req.body;
     const inputPath = req.file.path;
+    const outputFilename = `converted_${Date.now()}.${toFormat.toLowerCase()}`;
+    const outputPath = path.join('uploads', outputFilename);
     const inputStats = fs.statSync(inputPath);
 
     if (fromFormat === toFormat) {
@@ -285,21 +288,37 @@ router.post('/convert', authenticateToken, upload.single('file'), async (req, re
       return res.status(400).json({ error: 'Source and target formats must be different' });
     }
 
-    res.json({
-      message: 'Video format conversion is ready for processing',
-      filename: req.file.filename,
-      originalSize: `${(inputStats.size / 1024 / 1024).toFixed(2)} MB`,
-      fromFormat: fromFormat,
-      toFormat: toFormat,
-      note: 'Install FFmpeg for actual conversion: https://ffmpeg.org/download.html',
-      instructions: `After installing FFmpeg, will convert ${fromFormat.toUpperCase()} → ${toFormat.toUpperCase()}`,
-      downloadUrl: null, // Will be available after FFmpeg integration
+    // Create ffmpeg command
+    const command = ffmpeg(inputPath);
+
+    await new Promise((resolve, reject) => {
+      command.output(outputPath)
+        .on('end', () => resolve())
+        .on('error', (err) => reject(err))
+        .run();
     });
 
-    // Store for later processing
-    fs.renameSync(inputPath, path.join('uploads', `convert_${Date.now()}_${req.file.originalname}`));
+    const outputStats = fs.statSync(outputPath);
+
+    // Delete original uploaded file
+    fs.unlinkSync(inputPath);
+
+    res.json({
+      message: 'Video format converted successfully',
+      filename: outputFilename,
+      originalSize: `${(inputStats.size / 1024 / 1024).toFixed(2)} MB`,
+      convertedSize: `${(outputStats.size / 1024 / 1024).toFixed(2)} MB`,
+      fromFormat: fromFormat.toUpperCase(),
+      toFormat: toFormat.toUpperCase(),
+      downloadUrl: `/api/compress/download/${outputFilename}`,
+      note: 'Conversion completed successfully',
+      instructions: `Converted from ${fromFormat.toUpperCase()} to ${toFormat.toUpperCase()}`
+    });
+
   } catch (error) {
     console.error('Conversion error:', error);
+    // Cleanup input file on error
+    try { if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
     res.status(500).json({ error: error.message || 'Conversion failed' });
   }
 });
@@ -326,9 +345,15 @@ router.get('/download/:filename', (req, res) => {
     res.download(filePath, filename, (err) => {
       if (err) {
         console.error('Download error:', err);
+      } else {
+        // Delete file after successful download
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`Deleted file after download: ${filename}`);
+        } catch (unlinkErr) {
+          console.error(`Error deleting file ${filename}:`, unlinkErr);
+        }
       }
-      // Optionally delete file after download
-      // fs.unlinkSync(filePath);
     });
   } catch (error) {
     console.error('Download error:', error);
@@ -355,6 +380,63 @@ router.get('/list', authenticateToken, (req, res) => {
     res.json({ files: filesList });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Image format conversion endpoint
+router.post('/convert-image', authenticateToken, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { toFormat } = req.body;
+    const inputPath = req.file.path;
+    const originalExtension = path.extname(req.file.originalname).toLowerCase().slice(1);
+
+    if (!toFormat) {
+      fs.unlinkSync(inputPath);
+      return res.status(400).json({ error: 'Target format is required' });
+    }
+
+    if (originalExtension === toFormat.toLowerCase()) {
+      fs.unlinkSync(inputPath);
+      return res.status(400).json({ error: 'Source and target formats must be different' });
+    }
+
+    const outputFilename = `converted_image_${Date.now()}.${toFormat.toLowerCase()}`;
+    const outputPath = path.join('uploads', outputFilename);
+    const inputStats = fs.statSync(inputPath);
+
+    const sharpInstance = sharp(inputPath, { failOnError: false }).rotate();
+
+    // Convert logic
+    await sharpInstance
+      .toFormat(toFormat.toLowerCase())
+      .toFile(outputPath);
+
+    const outputStats = fs.statSync(outputPath);
+
+    // Delete original uploaded file
+    fs.unlinkSync(inputPath);
+
+    res.json({
+      message: 'Image converted successfully',
+      filename: outputFilename,
+      originalSize: `${(inputStats.size / 1024).toFixed(2)} KB`,
+      convertedSize: `${(outputStats.size / 1024).toFixed(2)} KB`,
+      fromFormat: originalExtension.toUpperCase(),
+      toFormat: toFormat.toUpperCase(),
+      downloadUrl: `/api/compress/download/${outputFilename}`,
+      note: 'Conversion completed successfully',
+      instructions: `Converted from ${originalExtension.toUpperCase()} to ${toFormat.toUpperCase()}`
+    });
+
+  } catch (error) {
+    console.error('Image conversion error:', error);
+    // Cleanup input file on error
+    try { if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (e) { }
+    res.status(500).json({ error: error.message || 'Image conversion failed' });
   }
 });
 
