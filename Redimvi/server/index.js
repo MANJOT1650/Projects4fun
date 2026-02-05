@@ -63,6 +63,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Start the periodic cleanup job for the uploads folder
+  const { startCleanupJob } = require('./utils/cleanup');
+  startCleanupJob(uploadsDir);
 });
 
 // Handle unhandled rejections
